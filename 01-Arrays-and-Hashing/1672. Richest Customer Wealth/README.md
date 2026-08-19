@@ -43,5 +43,3 @@ The 2nd customer is the richest with a wealth of 10.</pre>
 
 
 ---
-
-Error connecting to AI API: The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.
