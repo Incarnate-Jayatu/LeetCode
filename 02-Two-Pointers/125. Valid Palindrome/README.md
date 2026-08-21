@@ -37,5 +37,3 @@ Since an empty string reads the same forward and backward, it is a palindrome.
 
 
 ---
-
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
