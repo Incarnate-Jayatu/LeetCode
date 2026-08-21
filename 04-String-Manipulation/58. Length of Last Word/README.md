@@ -45,22 +45,7 @@
 ### Intuition
 Imagine reading a book from the very last page backward to find the length of the final chapter. Before you reach the actual words of the final chapter, you might encounter some empty trailing blank pages. You ignore those blank pages until you hit text. Once you start counting the characters of that final chapter, the very first blank page you encounter afterward signals that the chapter has ended, and you can immediately stop reading.
 
-### Algorithm Visualized
-```mermaid
-flowchart TD
-    Start([Start Loop at index = n - 1]) --> CheckChar{s[i] != ' ' ?}
-    
-    CheckChar -- Yes --> Increment[count++ / Found Word Character]
-    Increment --> NextIndex[i--]
-    
-    CheckChar -- No --> CheckCount{count > 0 ?}
-    CheckCount -- Yes (Trailing spaces passed, hit space after word) --> ReturnEarly([Return count])
-    CheckCount -- No (Still in trailing spaces) --> NextIndex
-    
-    NextIndex --> LoopBound{i >= 0 ?}
-    LoopBound -- Yes --> CheckChar
-    LoopBound -- No (Reached start of string) --> ReturnEnd([Return count])
-```
+
 
 ### Approach
 1. **Initialize a counter**: Start with `count = 0` to track the number of characters in the last word.
