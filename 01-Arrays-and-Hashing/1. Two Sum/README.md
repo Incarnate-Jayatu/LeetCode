@@ -52,28 +52,7 @@ Instead of randomly pairing up coats one by one (a brute-force search), you firs
 
 Once your directory is fully populated, you walk through the coats a second time. For each coat labeled $x$, you compute its exact needed pair $y = 10 - x$. You then immediately flip open your notebook and check: *"Is $y$ in the directory, and is it not the exact same coat I am currently holding?"* If it is, you retrieve both locker numbers on the spot.
 
-### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    Start([Start: nums, target]) --> Phase1[Phase 1: Build Hash Map]
-    
-    subgraph Pass1 [Pass 1: Population]
-        Phase1 --> Loop1{i < nums.size?}
-        Loop1 -- Yes --> Insert["h[nums[i]] = i"]
-        Insert --> Next1[i++] --> Loop1
-        Loop1 -- No --> Phase2[Phase 2: Complement Search]
-    end
-
-    subgraph Pass2 [Pass 2: Lookup]
-        Phase2 --> Loop2{i < nums.size?}
-        Loop2 -- Yes --> Calc["y = target - nums[i]"]
-        Calc --> Check{"h.find(y) != h.end() && h[y] != i"}
-        Check -- True --> Found([Return {i, h[y]}])
-        Check -- False --> Next2[i++] --> Loop2
-        Loop2 -- No --> Throw([Throw invalid_argument])
-    end
-```
 
 ### Approach
 The algorithm solves the problem in two distinct passes:
