@@ -60,26 +60,7 @@ A real-world analogy is packing a moving truck. If you have essential boxes alre
 
 Because `nums1` has an allocated capacity of `m + n` with empty buffer space (zeros) at the tail, we can work backward. By placing the largest elements at the end of `nums1` first, we guarantee that we never overwrite an element in `nums1` before we have read and processed it.
 
-### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    Start([Start Merge]) --> Init[Initialize Pointers:<br/>p1 = m - 1<br/>p2 = n - 1<br/>p = m + n - 1]
-    Init --> CheckBoth{p1 >= 0 AND p2 >= 0?}
-    
-    CheckBoth -- Yes --> Compare{nums1[p1] > nums2[p2]?}
-    Compare -- Yes --> Assign1["nums1[p] = nums1[p1]<br/>p1--"]
-    Compare -- No --> Assign2["nums1[p] = nums2[p2]<br/>p2--"]
-    
-    Assign1 --> DecP["p--"]
-    Assign2 --> DecP
-    DecP --> CheckBoth
-    
-    CheckBoth -- No --> CheckP2{p2 >= 0?}
-    CheckP2 -- Yes --> CopyRemaining["nums1[p] = nums2[p2]<br/>p2--<br/>p--"]
-    CopyRemaining --> CheckP2
-    CheckP2 -- No --> Done([Sorted nums1 Complete])
-```
 
 ### Approach
 1. **Initialize Three Pointers:**
