@@ -31,5 +31,3 @@ Total amount you can rob = 2 + 9 + 1 = 12.
 
 
 ---
-
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
