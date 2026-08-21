@@ -41,19 +41,6 @@ Think of uppercase and lowercase letters as two parallel rows of houses on a str
 
 Notice the distance between any uppercase letter and its lowercase counterpart is always a fixed constant: $97 - 65 = 32$. Therefore, if you are standing at uppercase `'C'` (ASCII `67`), adding `32` transports you directly to lowercase `'c'` (ASCII `99`). Any non-uppercase characters (digits, symbols, already-lowercase letters) fall outside this designated uppercase range and are left untouched.
 
-### Algorithm Visualized
-
-```mermaid
-flowchart TD
-    Start([Start Loop: i = 0]) --> CheckCondition{i < ch.length?}
-    CheckCondition -- Yes --> CheckChar{ch[i] >= 'A' <br/>AND<br/> ch[i] <= 'Z'?}
-    CheckChar -- Yes: Uppercase --> Transform[ch[i] = (char)(ch[i] + 32)]
-    CheckChar -- No: Other Char --> Increment[i++]
-    Transform --> Increment
-    Increment --> CheckCondition
-    CheckCondition -- No --> BuildString[Construct: new String ch]
-    BuildString --> Return([Return String])
-```
 
 ### Approach
 1. **Traverse the Character Array**: Loop sequentially through each character of the input character array `ch` using index `i` from `0` to `ch.length - 1`.
