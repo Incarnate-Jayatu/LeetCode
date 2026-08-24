@@ -52,4 +52,4 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 
 ---
 
-Error connecting to AI API: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
