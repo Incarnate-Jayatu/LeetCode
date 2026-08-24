@@ -59,4 +59,3 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 
 ---
 
-Error connecting to AI API: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
