@@ -56,7 +56,6 @@ Instead of checking all four directions for every land cell to count which bound
 Since checking every direction would count each shared edge twice, we only check in two directions (e.g., **Up** and **Left**). Each detected connection corresponds to exactly one shared edge, subtracting $2$ from the total theoretical perimeter:
 $$\text{Perimeter} = (\text{islands} \times 4) - (\text{neighbors} \times 2)$$
 
-### Algorithm Visualized
 
 ### Approach
 1. **Initialize Counters**:
