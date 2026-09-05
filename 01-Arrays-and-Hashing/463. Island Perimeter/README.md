@@ -58,27 +58,6 @@ $$\text{Perimeter} = (\text{islands} \times 4) - (\text{neighbors} \times 2)$$
 
 ### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    Start([Traverse Grid at Cell i, j]) --> IsLand{grid[i][j] == 1?}
-    IsLand -- No --> NextCell[Move to next cell]
-    IsLand -- Yes --> IncIsland[islands++]
-    
-    IncIsland --> CheckUp{i > 0 AND<br/>grid[i - 1][j] == 1?}
-    CheckUp -- Yes --> IncNeighborUp[neighbors++]
-    CheckUp -- No --> CheckLeft
-    IncNeighborUp --> CheckLeft
-    
-    CheckLeft{j > 0 AND<br/>grid[i][j - 1] == 1?}
-    CheckLeft -- Yes --> IncNeighborLeft[neighbors++]
-    CheckLeft -- No --> NextCell
-    IncNeighborLeft --> NextCell
-    
-    NextCell --> AllDone{Finished entire grid?}
-    AllDone -- No --> Start
-    AllDone -- Yes --> Calc[return islands * 4 - neighbors * 2]
-```
-
 ### Approach
 1. **Initialize Counters**:
    - `islands` keeps track of the total number of land cells (`1`s).
