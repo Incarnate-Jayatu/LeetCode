@@ -1,16 +1,16 @@
 1class Solution {
 2public:
 3    bool checkPerfectNumber(int num) {
-4        bool result;
-5        int sum=0;
-6        for(int i=1; i<=num/2; i++){
-7            if(num%i == 0)
+4        if (num <= 1) return false;
+5        int sum = 1;
+6        for (int i = 2; i * i <= num; i++) {
+7            if (num % i == 0) {
 8                sum += i;
-9        }
-10        if(sum == num)
-11            result = true;
-12        else
-13            result =false;
-14        return result;    
+9                if (i * i != num) {
+10                    sum += num / i;
+11                }
+12            }
+13        }
+14        return sum == num;
 15    }
 16};
