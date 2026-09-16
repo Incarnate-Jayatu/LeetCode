@@ -40,4 +40,3 @@ There are no 'a's, hence, every 'a' appears before every 'b' and we return true.
 
 ---
 
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
