@@ -48,4 +48,3 @@ The remaining words have a length of at least 3, so the first letter of each rem
 
 ---
 
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
