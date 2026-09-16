@@ -1,4 +1,4 @@
-<h2><a href="https://leetcode.com/problems/check-if-all-as-appears-before-all-bs">0000. Check If All As Appears Before All Bs</a></h2>
+<h2><a href="https://leetcode.com/problems/check-if-all-as-appears-before-all-bs">2124. Check If All As Appears Before All Bs</a></h2>
 
 <p>Given a string <code>s</code> consisting of <strong>only</strong> the characters <code>'a'</code> and <code>'b'</code>, return <code>true</code> <em>if <strong>every</strong> </em><code>'a'</code> <em>appears before <strong>every</strong> </em><code>'b'</code><em> in the string</em>. Otherwise, return <code>false</code>.</p>
 
