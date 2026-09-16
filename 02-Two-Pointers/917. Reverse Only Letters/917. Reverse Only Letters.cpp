@@ -1,26 +1,46 @@
-1class Solution {
-2public:
-3    string reverseOnlyLetters(string s) {
-4        int left = 0;
-5        int right = s.size() - 1;
-6
-7        while (left < right) {
-8            bool isLeftLetter = (s[left] >= 'a' && s[left] <= 'z') || (s[left] >= 'A' && s[left] <= 'Z');
-9            bool isRightLetter = (s[right] >= 'a' && s[right] <= 'z') || (s[right] >= 'A' && s[right] <= 'Z');
-10
-11            if (!isLeftLetter) {
-12                left++;
-13            } 
-14            else if (!isRightLetter) {
-15                right--;
-16            } 
-17            else {
-18                swap(s[left], s[right]);
-19                left++;
-20                right--;
-21            }
-22        }
-23        return s;
-24    }
-25};
-26
+class Solution {
+public:
+    string reverseOnlyLetters(string s) {
+        int left = 0;
+        int right = s.size() - 1;
+
+        while (left < right) {
+            bool isLeftLetter = (s[left] >= 'a' && s[left] <= 'z') || (s[left] >= 'A' && s[left] <= 'Z');
+            bool isRightLetter = (s[right] >= 'a' && s[right] <= 'z') || (s[right] >= 'A' && s[right] <= 'Z');
+
+            if (!isLeftLetter) {
+                left++;
+            } 
+            else if (!isRightLetter) {
+                right--;
+            } 
+            else {
+                swap(s[left], s[right]);
+                left++;
+                right--;
+            }
+        }
+        return s;
+    }
+};
+
+/* OPTIMAL SOLUTION
+class Solution {
+public:
+    string reverseOnlyLetters(string s) {
+        int i = 0, j = s.size() - 1;
+        while (i < j) {
+            while (i < j && !isalpha(s[i])) {
+                ++i;
+            }
+            while (i < j && !isalpha(s[j])) {
+                --j;
+            }
+            if (i < j) {
+                swap(s[i++], s[j--]);
+            }
+        }
+        return s;
+    }
+};
+*/
