@@ -33,4 +33,3 @@ Note that buying on day 2 and selling on day 1 is not allowed because you must b
 
 ---
 
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
