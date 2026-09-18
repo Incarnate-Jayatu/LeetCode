@@ -72,4 +72,3 @@ Note: 49 is not 1 (I) less of 50 (L) because the conversion is based on decimal 
 
 ---
 
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
