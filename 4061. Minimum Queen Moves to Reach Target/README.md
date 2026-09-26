@@ -75,18 +75,6 @@ Think of the queen as having eight distinct laser sights pointing outward along 
 
 ### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    Start([Start: source, target]) --> CheckSame{source == target?}
-    CheckSame -- Yes --> Return0[Return 0 moves]
-    CheckSame -- No --> CheckColinear{Same Row OR<br/>Same Column OR<br/>|Δrow| == |Δcol|?}
-    CheckColinear -- Yes --> Return1[Return 1 move]
-    CheckColinear -- No --> Return2[Return 2 moves]
-    
-    Return0 --> End([End])
-    Return1 --> End
-    Return2 --> End
-```
 
 ### Approach
 1. **Coordinate Extraction**: Unpack the `source` and `target` 2D coordinates into distinct integer variables `(rowOne, colOne)` and `(rowTwo, colTwo)`.
