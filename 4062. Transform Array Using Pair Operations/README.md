@@ -92,20 +92,6 @@ If there is only one beaker ($n = 1$), no transfers are possible, so its value m
 
 ### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    A([Start: Input source & target]) --> B{Is Array Length n == 1?}
-    B -- Yes --> C{Does source[0] == target[0]?}
-    C -- Yes --> D([Return true])
-    C -- No --> E([Return false])
-    B -- No --> F[Initialize sourceSum = 0, targetSum = 0]
-    F --> G[Iterate i from 0 to n - 1]
-    G --> H[Accumulate sourceSum += source[i]<br/>Accumulate targetSum += target[i]]
-    H --> I{Does sourceSum == targetSum?}
-    I -- Yes --> D
-    I -- No --> E
-```
-
 ### Approach
 1. **Handle Single-Element Boundary ($n = 1$):**
    - When the array length is $1$, no pair operations can be performed since at least two elements are required to form a pair.
