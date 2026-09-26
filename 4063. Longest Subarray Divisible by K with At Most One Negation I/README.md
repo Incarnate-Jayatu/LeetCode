@@ -74,133 +74,102 @@
 
 # 🛍️ Longest-Subarray-Divisible-by-K-with-At-Most-One-Negation-I | Explained
 
-## Approach 1: Fixed-Start Subarray Expansion with Negation-Delta Hashing
-
+## Approach 1: Brute-Force Subarray Enumeration with Modular Remainder Tracking
 ### Intuition
-Imagine you are at a checkout counter trying to make your total bill an exact multiple of $k$ dollars. You place items into your cart one by one. The cashier allows you a special perk: you can pick **at most one** item currently in your cart and turn its charge into a discount (i.e., negate its value from $+x$ to $-x$). 
+Imagine checking out items at a store where the total bill must be an exact multiple of $k$. The store offers a special promotion: you can choose at most **one** item in your cart and negate its sign (turning its addition into a subtraction). 
 
-When you flip the sign of an item with value $x$, the total sum decreases by $2x$ (since $(S - x) - (+x) = S - 2x$). For the final modified sum to be divisible by $k$, the reduction must cancel out the excess remainder of your original sum:
-$$S - 2x \equiv 0 \pmod k \iff S \equiv 2x \pmod k$$
+If a subarray has a sum $S$, leaving it as-is requires $S \equiv 0 \pmod k$. If you choose to negate an element $x$, the sum changes from $S$ to $S - 2x$. For this modified sum to be divisible by $k$:
+$$(S - 2x) \equiv 0 \pmod k \iff S \equiv 2x \pmod k$$
 
-Thus, as we expand a candidate subarray, we only need to keep track of the running sum remainder and the set of possible "removals" ($2x \pmod k$) that our chosen elements can provide. If the running sum is already divisible by $k$, or if its remainder matches $2x \pmod k$ for any element $x$ seen so far in this subarray, the subarray is valid.
+Instead of re-calculating the sum for every possible negation from scratch, we can expand our subarray starting from index $i$ to index $j$. As each element $nums[j]$ is added, we record its adjustment factor $(2 \cdot nums[j]) \pmod k$ into a lookup set. At any point, if the running total $S \pmod k$ is already $0$ (zero negations needed) or matches any $(2 \cdot nums[m]) \pmod k$ seen in the current subarray, we have found a valid subarray.
 
 ### Algorithm Visualized
-
+```mermaid
+flowchart TD
+    Start([Start Outer Loop: i from 0 to N-1]) --> InitInner[Reset ongoingSum = 0<br/>Initialize obsNegations Set]
+    InitInner --> InnerLoop[Inner Loop: j from i to N-1]
+    InnerLoop --> AddSum[ongoingSum += nums[j]]
+    AddSum --> CalcNegRem["Calculate negRemainder = (2 * nums[j] % k + k) % k<br/>obsNegations.add(negRemainder)"]
+    CalcNegRem --> CalcOngoingRem["Calculate ongoingRemainder = (ongoingSum % k + k) % k"]
+    CalcOngoingRem --> CheckCond{ongoingRemainder == 0<br/>OR<br/>obsNegations contains ongoingRemainder?}
+    CheckCond -- Yes --> UpdateMax[maxLength = max(maxLength, j - i + 1)]
+    CheckCond -- No --> CheckNextJ{j + 1 < N?}
+    UpdateMax --> CheckNextJ
+    CheckNextJ -- Yes --> InnerLoop
+    CheckNextJ -- No --> CheckNextI{i + 1 < N?}
+    CheckNextI -- Yes --> Start
+    CheckNextI -- No --> ReturnResult([Return maxLength])
+```
 
 ### Approach
-1. **Iterate Subarray Starts:** Loop through every possible start index `i` from `0` to `nums.length - 1`.
-2. **Reset Subarray State:** For each new start index `i`:
-   - Initialize a 64-bit integer `ongoingSum = 0` to accumulate values without integer overflow.
-   - Initialize a hash set `obsNegations` to store all distinct values of $(2 \cdot nums[m]) \pmod k$ present in the current subarray.
-3. **Expand Subarray End:** Loop index `j` from `i` to `nums.length - 1`:
-   - Add `nums[j]` to `ongoingSum`.
-   - Calculate the change in remainder if `nums[j]` were negated: $2 \cdot nums[j] \pmod k$. Handle negative values using modular normalization: `((2 * nums[j] % k) + k) % k`.
-   - Add this normalized remainder to `obsNegations`.
-   - Compute the normalized remainder of the full subarray sum: `((ongoingSum % k) + k) % k`.
-   - Check validity:
-     - If `ongoingRemainder == 0`, no negation is needed.
-     - If `obsNegations.contains(ongoingRemainder)`, negating that specific element reduces the sum to a multiple of $k$.
-   - If either condition is met, update `maxLength = Math.max(maxLength, j - i + 1)`.
-4. **Return Result:** Return `maxLength`.
-
----
+1. **Fix Left Boundary ($i$):** Iterate through every possible starting index $i$ from $0$ to $n - 1$.
+2. **State Tracking:**
+   - Keep a 64-bit accumulator `ongoingSum` to prevent potential 32-bit signed integer overflow during sequential additions.
+   - Maintain a hash set `obsNegations` that stores normalized modular values of $2 \cdot nums[m] \pmod k$ for all indices $m \in [i, j]$.
+3. **Expand Right Boundary ($j$):** Iterate $j$ from $i$ to $n - 1$:
+   - Add $nums[j]$ to `ongoingSum`.
+   - Compute the modular contribution of negating $nums[j]$: `negRemainder = ((2 * nums[j] % k + k) % k)` and insert it into `obsNegations`.
+   - Compute the normalized remainder of the un-negated subarray sum: `ongoingRemainder = (ongoingSum % k + k) % k`.
+4. **Validation Check:**
+   - Case 0 Negations: If `ongoingRemainder == 0`, the subarray sum is already divisible by $k$.
+   - Case 1 Negation: If `obsNegations.contains(ongoingRemainder)`, there exists some element $nums[m]$ ($i \le m \le j$) such that $S - 2 \cdot nums[m] \equiv 0 \pmod k$.
+   - If either holds, update `maxLength = Math.max(maxLength, j - i + 1)`.
+5. **Return:** After evaluating all pairs $(i, j)$, return `maxLength`.
 
 ### Detailed Code Analysis
-
-- **Unused Reference:**
-  ```java
-  int []minVal = nums;
-  ```
-  This creates an alias to the array `nums` but is never referenced. It can be safely removed to eliminate dead code.
-
-- **Outer Loop and Accumulator Initialization:**
-  ```java
-  for(int i=0; i<no; i++){
-      long ongoingSum = 0;
-      Set<Integer> obsNegations = new HashSet<>();
-  ```
-  `ongoingSum` is declared as a `long` to prevent 32-bit signed integer overflow when accumulating large positive or negative values over long subarrays. A fresh `HashSet` is instantiated for every `i` to isolate element negations strictly within the bounds of $nums[i \dots j]$.
-
-- **Inner Loop and Remainder Normalization:**
-  ```java
-  for(int j=i; j<no; j++){
-      ongoingSum += nums[j];
-      int negRemainder = ((2*nums[j]%k+k)%k);
-      obsNegations.add(negRemainder);
-      int ongoingRemainder = (int)((ongoingSum%k+k)%k);
-  ```
-  In Java, the `%` operator computes the remainder, which preserves negative signs (e.g., `-7 % 5 = -2`). To map remainders to standard mathematical modulo values in the range $[0, k - 1]$, the formula `((val % k) + k) % k` is applied. 
-  
-  `negRemainder` captures $(2 \cdot nums[j]) \pmod k$. Because order does not restrict which element in the current window can be negated, any element processed from index `i` to `j` is an eligible candidate.
-
-- **Divisibility Check and Window Maximization:**
-  ```java
-  if(ongoingRemainder == 0 || obsNegations.contains(ongoingRemainder)){
-      maxLength = Math.max(maxLength, j-i+1);
-  }
-  ```
-  - `ongoingRemainder == 0`: Represents the base case where $0$ negations are needed.
-  - `obsNegations.contains(ongoingRemainder)`: Represents the case where $1$ negation is used. If an element $nums[m]$ inside the window has $(2 \cdot nums[m]) \equiv ongoingSum \pmod k$, then flipping $nums[m]$ to $-nums[m]$ makes the modified sum divisible by $k$.
-  - When valid, the current subarray length `j - i + 1` updates `maxLength`.
-
----
+- **Line 3 (`int []minVal = nums;`):** Creates an alias reference to the input array `nums`. While declared, this variable is redundant and not utilized further.
+- **Line 4-5 (`int no = nums.length; int maxLength = 0;`):** Captures the input size $n$ and initializes the answer tracker to $0$.
+- **Line 6-8 (`for(int i=0; i<no; i++) { ... }`):**
+  - Begins the outer loop fixing the left endpoint $i$.
+  - `long ongoingSum = 0;`: A 64-bit integer initialized to $0$. Using `long` protects against integer overflow when accumulating multiple large elements before applying the modulo operation.
+  - `Set<Integer> obsNegations = new HashSet<>();`: Instantiates a set to record all candidate remainder offsets produced by negating individual elements in the current window $[i, j]$.
+- **Line 9-10 (`for(int j=i; j<no; j++) { ongoingSum += nums[j]; ... }`):**
+  - Traverses the right endpoint $j$ outward, incrementally building the subarray $[i, j]$.
+- **Line 11-12 (`int negRemainder = ((2*nums[j]%k+k)%k); obsNegations.add(negRemainder);`):**
+  - Computes $(2 \cdot nums[j]) \pmod k$. Because Java's `%` operator preserves the sign of negative dividends (e.g., `-5 % 3 == -2`), applying `(val % k + k) % k` guarantees a non-negative remainder in the range $[0, k - 1]$.
+  - Adds this remainder to `obsNegations`.
+- **Line 13 (`int ongoingRemainder = (int)((ongoingSum%k+k)%k);`):**
+  - Normalizes the cumulative sum remainder into the non-negative interval $[0, k - 1]$.
+- **Line 14-16 (`if(ongoingRemainder == 0 || obsNegations.contains(ongoingRemainder)) { maxLength = Math.max(maxLength, j-i+1); }`):**
+  - Verifies whether the un-negated sum is a multiple of $k$ (`ongoingRemainder == 0`) or if an existing element in the current range can be flipped to neutralize the remainder (`obsNegations.contains(ongoingRemainder)`).
+  - Updates `maxLength` if the condition is satisfied.
+- **Line 19 (`return maxLength;`):** Returns the maximum valid window length found.
 
 ### Code
-
 ```java
-import java.util.HashSet;
-import java.util.Set;
-
 class Solution {
     public int longestSubarray(int[] nums, int k) {
+        int []minVal = nums;
         int no = nums.length;
         int maxLength = 0;
-
-        for (int i = 0; i < no; i++) {
+        for(int i=0; i<no; i++){
             long ongoingSum = 0;
             Set<Integer> obsNegations = new HashSet<>();
-
-            for (int j = i; j < no; j++) {
+            for(int j=i; j<no; j++){
                 ongoingSum += nums[j];
-                
-                // Normalizing (2 * nums[j]) % k to ensure non-negative remainder
-                int negRemainder = (int) (((2L * nums[j] % k) + k) % k);
+                int negRemainder = ((2*nums[j]%k+k)%k);
                 obsNegations.add(negRemainder);
-
-                // Normalizing ongoingSum % k
-                int ongoingRemainder = (int) ((ongoingSum % k + k) % k);
-
-                if (ongoingRemainder == 0 || obsNegations.contains(ongoingRemainder)) {
-                    maxLength = Math.max(maxLength, j - i + 1);
+                int ongoingRemainder = (int)((ongoingSum%k+k)%k);
+                if(ongoingRemainder == 0 || obsNegations.contains(ongoingRemainder)){
+                    maxLength = Math.max(maxLength, j-i+1);
                 }
             }
         }
-
         return maxLength;
     }
 }
 ```
 
----
-
 ### Complexity
-
-- **Time Complexity:** $\mathcal{O}(N^2)$
-  - The outer loop runs $N$ times, and the inner loop runs $N - i$ times, giving $\frac{N(N + 1)}{2}$ iterations.
-  - In each iteration, arithmetic operations and `HashSet` lookups/insertions run in $\mathcal{O}(1)$ average time.
-  - Overall time complexity is $\mathcal{O}(N^2)$, which is well-suited for smaller constraints (e.g., $N \le 1000$ or $2000$).
-
-- **Space Complexity:** $\mathcal{O}(\min(N, k))$
-  - For each outer loop iteration, the `obsNegations` set stores distinct remainders modulo $k$.
-  - The maximum number of unique remainders cannot exceed $\min(N, k)$.
-  - The set is garbage-collected or re-allocated across outer iterations, keeping peak auxiliary space bounded by $\mathcal{O}(\min(N, k))$.
+- **Time:** $O(N^2)$ average. There are $\frac{N(N + 1)}{2}$ pairs of $(i, j)$. Within each inner step, addition, modulo arithmetic, and `HashSet` lookups/insertions take $O(1)$ average time. In the worst-case hash collision scenario, `HashSet` operations could degrade to $O(\min(N, k))$, but under standard hashing behavior it performs in $O(N^2)$ overall.
+- **Space:** $O(\min(N, k))$ auxiliary space. The `obsNegations` set is re-allocated for each outer iteration and stores at most $\min(N, k)$ unique remainders since any remainder modulo $k$ lies strictly within $[0, k - 1]$.
 
 ---
 
 ## 🕵️‍♂️ Follow-up Questions (Optional)
 
-1. **How can integer overflow occur in `2 * nums[j]`?**
-   - If `nums[j]` is close to `Integer.MAX_VALUE` (e.g., $1.5 \times 10^9$), computing `2 * nums[j]` as a 32-bit `int` will overflow into negative values before the `% k` operation is applied. Casting to `2L * nums[j]` before applying the modulo guarantees safe evaluation.
+1. **Why can't standard two-pointer / sliding window techniques achieve an $O(N)$ runtime here?**
+   - A sliding window requires monotonic properties (e.g., expanding the window strictly increases the sum). Because the problem involves modulo arithmetic and potentially negative values, the modular remainder does not behave monotonically when elements are added or removed.
 
-2. **Can this problem be solved faster than $\mathcal{O}(N^2)$?**
-   - Yes, using prefix sums and remainder states. The equation $Prefix[j] - Prefix[i-1] \equiv 2 \cdot nums[m] \pmod k$ can be reordered to $(Prefix[j] - 2 \cdot nums[m]) \equiv Prefix[i-1] \pmod k$. By tracking the earliest occurrence of prefix remainders in hash maps or across dynamic programming states, linear or $\mathcal{O}(N \cdot k)$ solutions can be constructed.
+2. **How could this problem be scaled if $N \le 10^5$ (e.g., in Version II)?**
+   - For larger constraints, an $O(N^2)$ approach will exceed the time limit. An optimized approach would decouple the negation choices using prefix remainders and dynamic programming or modular state tracking. By recording the earliest occurrences of each prefix remainder state (both before and after applying a negation transition), the time complexity can be reduced to $O(N \cdot k)$ or $O(N)$ depending on $k$'s constraints.
