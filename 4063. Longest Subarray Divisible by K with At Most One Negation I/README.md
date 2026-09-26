@@ -86,30 +86,6 @@ Thus, as we expand a candidate subarray, we only need to keep track of the runni
 
 ### Algorithm Visualized
 
-```mermaid
-flowchart TD
-    Start([Start Outer Loop: i from 0 to N-1]) --> InitVars[Initialize ongoingSum = 0<br/>Empty HashSet obsNegations]
-    InitVars --> InnerLoop([Inner Loop: j from i to N-1])
-    
-    InnerLoop --> AddSum[ongoingSum += nums[j]]
-    AddSum --> CalcNeg[Compute negRemainder = 2 * nums[j] mod k<br/>Add negRemainder to obsNegations]
-    CalcNeg --> CalcOngoing[Compute ongoingRemainder = ongoingSum mod k]
-    
-    CalcOngoing --> CheckValid{ongoingRemainder == 0 <br/>OR<br/>obsNegations contains ongoingRemainder?}
-    
-    CheckValid -- Yes --> UpdateMax[maxLength = max maxLength, j - i + 1]
-    CheckValid -- No --> NextJ[Continue to next j]
-    UpdateMax --> NextJ
-    
-    NextJ --> MoreJ{j + 1 < N?}
-    MoreJ -- Yes --> InnerLoop
-    MoreJ -- No --> MoreI{i + 1 < N?}
-    
-    MoreI -- Yes --> Start
-    MoreI -- No --> End([Return maxLength])
-```
-
----
 
 ### Approach
 1. **Iterate Subarray Starts:** Loop through every possible start index `i` from `0` to `nums.length - 1`.
