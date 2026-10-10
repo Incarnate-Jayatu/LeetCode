@@ -1,41 +1,22 @@
-long long minSumSquareDiff(std::vector<int>& nums1, std::vector<int>& nums2, int k1, int k2) {
-        const int n = nums1.size();
-
-        // Track deltas between nums1 and nums2 with counting sort buckets
-        const int MAX_DELTA = 100000;
-        std::vector<int> freq(MAX_DELTA + 1, 0);
-        int max_delta = 0;
-        int64_t total = 0;
-        for (int i = 0; i < n; ++i) {
-            int delta = std::abs(nums1[i] - nums2[i]);
-            ++freq[delta];
-            max_delta = std::max(max_delta, delta);
-            total += delta;
+class Solution{
+public:
+    long long minSumSquareDiff(vector<int>& nums1, vector<int>& nums2, int k1, int k2){
+        int n = nums1.size(), M = 0;
+        long long k = 1LL * k1 + k2;
+        vector<int> diff(n);
+        for (int i = 0; i < n; i++)
+            M = max(M, diff[i] = abs(nums1[i] - nums2[i]));
+        vector<int> bucket(M + 1);
+        for (int x : diff) bucket[x]++;
+        for (int i = M; i > 0 && k > 0; i--){
+            int take = min((long long)bucket[i], k);
+            bucket[i] -= take;
+            bucket[i - 1] += take;
+            k -= take;
         }
-
-        int64_t mods = static_cast<int64_t>(k1) + k2;
-        if (mods >= total) {
-            return 0;
-        }
-
-        // Reduce larger deltas first and calculate sum of squares in the same pass
-        int64_t sum = 0;
-        for (int delta = max_delta; delta > 0; --delta) {
-            if (freq[delta] == 0) {
-                continue;
-            }
-
-            if (mods > 0) {
-                // If we have mods left to spend, subtract from highest delta count
-                int move = static_cast<int>(std::min<int64_t>(mods, freq[delta]));
-                freq[delta] -= move;
-                freq[delta - 1] += move;
-                mods -= move;
-            }
-
-            // Add squared sum for any remaining instances of this delta
-            sum += static_cast<int64_t>(freq[delta]) * delta * delta;
-        }
-
-        return sum;
+        long long ans = 0;
+        for (int i = 1; i <= M; i++)
+            ans += 1LL * bucket[i] * i * i;
+        return ans;
     }
+};
