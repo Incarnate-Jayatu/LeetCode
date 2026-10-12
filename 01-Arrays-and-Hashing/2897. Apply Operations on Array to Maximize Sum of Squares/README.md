@@ -45,5 +45,3 @@ It can be shown that this is the maximum value we can get.
 
 
 ---
-
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
