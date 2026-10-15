@@ -47,5 +47,3 @@ The sum of the squares of the distinct counts in all subarrays is equal to 1<sup
 
 
 ---
-
-Error connecting to AI API: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
