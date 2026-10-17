@@ -69,169 +69,146 @@
 
 # 🛍️ Minimum-Swaps-to-Sort-by-Digit-Sum | Explained
 
-## Approach 1: Cycle Decomposition via Custom Coordinate Sorting
-
+## Approach 1: Coordinate Compression and Cycle Decomposition
 ### Intuition
-Think of this problem like an assigned seating arrangement at a banquet. Initially, guests (the numbers) are sitting in arbitrary chairs (indices $0$ to $n-1$). Based on a custom protocol—first by their digit sum, and if tied, by their actual value—each guest has a specific assigned seat. 
+Imagine a classroom of students standing in a line, each assigned a specific assigned seat in an auditorium. To seat everyone correctly with the minimum number of seat exchanges, you can inspect each student: if student $A$ is currently standing at spot $i$ but belongs in seat $j$, you swap student $A$ with whoever is currently sitting in seat $j$. Now student $A$ is in their correct seat, and you repeat this process with the newcomer at spot $i$ until whoever is standing at spot $i$ actually belongs at spot $i$. 
 
-If guest $A$ is sitting in guest $B$'s assigned seat, guest $B$ is sitting in guest $C$'s assigned seat, and guest $C$ is sitting in guest $A$'s assigned seat, they form a closed "cycle" of displaced individuals. To place all 3 guests into their proper seats using only pairwise swaps, it always takes exactly $3 - 1 = 2$ swaps. If a guest is already in their correct seat, they form a cycle of length 1, requiring $1 - 1 = 0$ swaps. 
-
-Because any permutation of distinct positions can be decomposed into a set of disjoint directed cycles, the minimum total number of swaps required to sort the array is the sum of $(L - 1)$ for every cycle of length $L$.
+This problem reduces to two distinct phases:
+1. **Determine Target Coordinates:** Define the target order by sorting pairs of `(digit_sum, value)`. Because the sorted order specifies where each number must end up, we assign each original value a target rank (its "home" index).
+2. **Cycle Decomposition:** Any permutation can be decomposed into disjoint directed cycles. If a cycle contains $L$ elements, putting all $L$ elements into their respective target positions requires exactly $L - 1$ swaps. Repeatedly placing misplaced elements directly into their target index resolves each cycle greedily in minimum swaps.
 
 ### Algorithm Visualized
 
 ```mermaid
 flowchart TD
-    subgraph Step1["1. Augment & Compute"]
-        A["Array: [37, 18, 20]"] --> B["Compute Digit Sums: [10, 9, 2]"]
-        B --> C["Tuples (DigitSum, Val, OrigIndex):<br/>(10, 37, 0), (9, 18, 1), (2, 20, 2)"]
+    subgraph Phase1["1. Pairing & Sorting"]
+        A["Original Array: nums"] --> B["Compute (digit_sum, value) pairs"]
+        B --> C["Sort pairs lexicographically"]
+        C --> D["Map value -> target rank (home index)"]
     end
 
-    subgraph Step2["2. Sort by Target Criteria"]
-        C --> D["Sorted Tuples:<br/>Pos 0: (2, 20, Orig: 2)<br/>Pos 1: (9, 18, Orig: 1)<br/>Pos 2: (10, 37, Orig: 0)"]
+    subgraph Phase2["2. Permutation Array Creation"]
+        D --> E["Construct home array where home[i] = target index of nums[i]"]
     end
 
-    subgraph Step3["3. Cycle Decomposition"]
-        D --> E["Index 0 points to Orig Index 2<br/>Index 2 points to Orig Index 0"]
-        E --> F["Cycle Detected: 0 -> 2 -> 0 (Length = 2)<br/>Swaps = 2 - 1 = 1"]
-        D --> G["Index 1 points to Orig Index 1<br/>Self-loop (Length = 1) -> 0 Swaps"]
+    subgraph Phase3["3. In-Place Cycle Swapping"]
+        E --> F{"Is home[i] == i?"}
+        F -- Yes --> G["Move to next index i++"]
+        F -- No --> H["Swap home[i] with home[home[i]]"]
+        H --> I["Increment swaps by 1"]
+        I --> F
     end
-
-    Step3 --> H["Total Minimum Swaps = 1"]
 ```
 
+---
+
 ### Approach
-1. **Data Augmentation**:
-   - For each number in `nums`, calculate its digit sum.
-   - Store the elements as a triplet: `(digit_sum, value, original_index)`. Storing the original index is critical because it tells us where the item came from in the unsorted array.
-2. **Stable Sorting by Custom Rule**:
-   - Sort the triplets primarily by `digit_sum` ascending.
-   - If two elements have equal digit sums, break ties by comparing their original numeric `value` ascending.
-3. **Graph Modeling (Cycle Decomposition)**:
-   - After sorting, the triplet at index `i` contains `a[i][2]`, which indicates the index where this element originally resided.
-   - This forms a directed permutation graph where a directed edge exists from index `i` to index `a[i][2]`.
-   - Maintain a boolean array `vis` to avoid recounting elements in already processed cycles.
-4. **Counting Minimum Swaps**:
-   - Iterate from $i = 0$ to $n - 1$.
-   - If position $i$ is already visited or already in its correct spot (`a[i][2] == i`), skip it.
-   - Otherwise, traverse the cycle starting at $i$, marking all nodes in the cycle as visited, and count the cycle length `len`.
-   - Add `len - 1` to the total swap count.
+1. **Digit Sum Calculation:** Define a helper function to sum the base-10 digits of an integer $x$.
+2. **Pairing and Lexicographical Sort:** Pair each element $x$ with its digit sum as `(digit_sum(x), x)`. By sorting these pairs, C++'s `std::ranges::sort` naturally breaks ties in digit sums using the number's actual numerical value.
+3. **Rank Mapping:** Store the target index of each sorted number in a hash table (`rank`), where the key is the number itself and the value is its 0-indexed sorted position.
+4. **Construct Target Indices Array:** Transform the original array into an array `home`, where `home[i]` denotes the destination index where the element at position `i` must relocate.
+5. **Permutation Cycle Traversal:** Iterate through each position $i$ from $0$ to $n - 1$. While `home[i] != i`, swap the element at index $i$ with the element at index `home[i]`. Each swap places at least one element into its final sorted position and increments the swap counter.
+
+---
 
 ### Detailed Code Analysis
 
-#### 1. Augmenting Data with Digit Sums and Original Indices
-```java
-int n = nums.length;
-int[][] a = new int[n][3];
-for (int i = 0; i < n; i++) {
-    int s = 0, x = nums[i];
-    while (x > 0) {
-        s += x % 10;
-        x /= 10;
-    }
-    a[i][0] = s;
-    a[i][1] = nums[i];
-    a[i][2] = i;
-}
+```cpp
+auto digit_sum = [](int x) {
+    int s = 0;
+    for (; x > 0; x /= 10) s += x % 10;
+    return s;
+};
 ```
-- `a` is allocated as an $n \times 3$ matrix.
-  - `a[i][0]`: Sum of the digits of `nums[i]`.
-  - `a[i][1]`: Original value `nums[i]`.
-  - `a[i][2]`: Original index `i`.
-- The inner `while` loop extracts digits using the modulo operator (`x % 10`) and strips them with integer division (`x /= 10`).
+- A lambda function `digit_sum` extracts digits using standard modulo arithmetic (`x % 10`) and division (`x /= 10`), running in $O(\log_{10}(x))$ time per number.
 
-#### 2. Custom Dual-Criterion Sorting
-```java
-Arrays.sort(a, (p, q) -> p[0] != q[0]
-        ? Integer.compare(p[0], q[0])
-        : Integer.compare(p[1], q[1]));
+```cpp
+int n = nums.size();
+vector<pair<int, int>> keyed;  // (digit sum, value)
+for (int x : nums) keyed.emplace_back(digit_sum(x), x);
+ranges::sort(keyed);
 ```
-- Sorts array `a` using a lambda comparator.
-- Checks if the digit sums `p[0]` and `q[0]` differ:
-  - If different, orders by `p[0] - q[0]`.
-  - If identical, breaks ties using their actual numeric values `p[1]` and `q[1]`.
-- Post-sort, index `i` represents where an element *must end up*, and `a[i][2]` represents where it *currently resides*.
+- A vector of pairs `keyed` is populated with `(digit_sum(x), x)`. 
+- `ranges::sort(keyed)` performs an introspective sort ($O(n \log n)$ comparisons). Since `std::pair` compares the `first` element (digit sum) first, and falls back to the `second` element (original integer value) upon ties, this achieves the required ordering rule.
 
-#### 3. Permutation Cycle Traversal
-```java
-boolean[] vis = new boolean[n];
+```cpp
+unordered_map<int, int> rank;  // final position of each value
+for (int k = 0; k < n; k++) rank[keyed[k].second] = k;
+vector<int> home;  // where the value at each position must go
+for (int x : nums) home.push_back(rank[x]);
+```
+- An `unordered_map<int, int>` records each number's intended destination index `k`.
+- The `home` vector represents the permutation $\pi$ where $\pi[i]$ is the index in the sorted array where the current number at `nums[i]` needs to land.
+
+```cpp
 int swaps = 0;
 for (int i = 0; i < n; i++) {
-    if (vis[i] || a[i][2] == i) continue;
-    int j = i, len = 0;
-    while (!vis[j]) {
-        vis[j] = true;
-        j = a[j][2];
-        len++;
+    while (home[i] != i) {  // send the value at i home, take that spot's value in exchange
+        int j = home[i];
+        swap(home[i], home[j]);
+        swaps++;
     }
-    swaps += len - 1;
 }
 return swaps;
 ```
-- `vis` array prevents infinite loops and ensures each cycle is resolved exactly once.
-- `if (vis[i] || a[i][2] == i) continue;`: Skips elements that are either already accounted for or already resting in their correct sorted location.
-- Inside the `while (!vis[j])` loop:
-  - Traverses the cycle by jumping from current position `j` to `a[j][2]`.
-  - Marks `j` as visited and increments `len`.
-- For each cycle of length `len`, the minimum swaps required to resolve it is `len - 1`. Accumulating these gives the minimal global swaps.
+- The outer loop steps through each index $i$.
+- If `home[i] == i`, the element is already in its correct location (a cycle of length 1).
+- If `home[i] != i`, it belongs to a cycle of length $L > 1$. By setting `j = home[i]` and swapping `home[i]` with `home[j]`, the element originally at $i$ reaches its final position $j$. The element previously at $j$ is brought to $i$ to be resolved in subsequent iterations of the `while` loop.
+- Because every swap places at least one element into its permanent position (`home[j] == j`), the inner loop runs at most $n$ times total across the entire execution.
+
+---
 
 ### Code
-```java
+```cpp
 class Solution {
-    public int minSwaps(int[] nums) {
-        int n = nums.length;
-        int[][] a = new int[n][3];
-        for (int i = 0; i < n; i++) {
-            int s = 0, x = nums[i];
-            while (x > 0) {
-                s += x % 10;
-                x /= 10;
-            }
-            a[i][0] = s;
-            a[i][1] = nums[i];
-            a[i][2] = i;
-        }
-        Arrays.sort(a, (p, q) -> p[0] != q[0]
-                ? Integer.compare(p[0], q[0])
-                : Integer.compare(p[1], q[1]));
+public:
+    int minSwaps(vector<int>& nums) {
+        auto digit_sum = [](int x) {
+            int s = 0;
+            for (; x > 0; x /= 10) s += x % 10;
+            return s;
+        };
+        int n = nums.size();
+        vector<pair<int, int>> keyed;  // (digit sum, value)
+        for (int x : nums) keyed.emplace_back(digit_sum(x), x);
+        ranges::sort(keyed);
+        unordered_map<int, int> rank;  // final position of each value
+        for (int k = 0; k < n; k++) rank[keyed[k].second] = k;
+        vector<int> home;  // where the value at each position must go
+        for (int x : nums) home.push_back(rank[x]);
 
-        boolean[] vis = new boolean[n];
         int swaps = 0;
         for (int i = 0; i < n; i++) {
-            if (vis[i] || a[i][2] == i) continue;
-            int j = i, len = 0;
-            while (!vis[j]) {
-                vis[j] = true;
-                j = a[j][2];
-                len++;
+            while (home[i] != i) {  // send the value at i home, take that spot's value in exchange
+                int j = home[i];
+                swap(home[i], home[j]);
+                swaps++;
             }
-            swaps += len - 1;
         }
         return swaps;
     }
-}
+};
 ```
 
+---
+
 ### Complexity
-- **Time:** $\mathcal{O}(N \log N + N \log_{10} M)$, where $N$ is the number of elements in `nums` and $M$ is the maximum value in `nums`.
-  - Calculating the digit sums takes $\mathcal{O}(N \log_{10} M)$ operations since each number has at most $\approx \log_{10}(M)$ digits.
-  - Sorting the array `a` of size $N$ takes $\mathcal{O}(N \log N)$ comparisons.
-  - The cycle detection visits each index at most twice across the outer loop and the `while` traversal, running in $\mathcal{O}(N)$ time.
-  - Dominated by sorting: $\mathcal{O}(N \log N)$.
-- **Space:** $\mathcal{O}(N)$ auxiliary space.
-  - Array `a` requires $\mathcal{O}(N)$ space to store $N \times 3$ integers.
-  - Boolean array `vis` requires $\mathcal{O}(N)$ space.
-  - Sorting recursion stack overhead takes $\mathcal{O}(\log N)$.
+- **Time:** $O(n \log n + n \log_{10}(M))$ where $n$ is the number of elements in `nums` and $M$ is the maximum value in `nums`.
+  - Computing the digit sums takes $O(n \log_{10}(M))$ operations.
+  - Sorting the `keyed` vector takes $O(n \log n)$.
+  - Populating the hash map and building `home` takes $O(n)$ average time.
+  - The cycle-swapping while loop executes at most $n - 1$ swaps across all iterations because each swap permanently resolves one element's position. Thus, cycle decomposition takes $O(n)$ time.
+- **Space:** $O(n)$ auxiliary space.
+  - `keyed` vector stores $n$ pairs ($O(n)$ space).
+  - `rank` hash map stores $n$ key-value pairs ($O(n)$ space).
+  - `home` array stores $n$ integers ($O(n)$ space).
 
 ---
 
 ## 🕵️‍♂️ Follow-up Questions (Optional)
 
-1. **How can you optimize space if creating an auxiliary 2D array is too expensive in memory-constrained environments?**
-   - Instead of allocating an $N \times 3$ matrix `a`, pack the original index into an `Integer[] idx` array initialized with values $0$ to $n-1$.
-   - Precompute digit sums in a 1D primitive array `int[] digitSums`.
-   - Sort `idx` based on `digitSums[idx[i]]` and `nums[idx[i]]`. This avoids boxing integers or creating multi-dimensional array object overheads in Java.
+1. **How can you optimize auxiliary space to avoid using an `unordered_map`?**
+   - Instead of storing pairs of `(digit_sum, value)` and then mapping values back through an `unordered_map`, store triplets or a custom struct: `(digit_sum, value, original_index)`. After sorting, the element at sorted position `k` originated at `original_index`. We can directly populate `home[original_index] = k` in $O(n)$ without hash table lookups or overhead, eliminating hash collisions and duplicate-value issues entirely.
 
-2. **Can we solve this problem in $\mathcal{O}(N)$ time if numbers are bounded?**
-   - Yes. If the maximum value of $nums[i]$ is bounded (e.g., $nums[i] \le 10^6$), the maximum digit sum is bounded (at most $9 \times 6 = 54$).
-   - We can sort using **Radix Sort** or **Counting Sort** in $\mathcal{O}(N)$ time instead of comparison sort $\mathcal{O}(N \log N)$. Once the sorted positions are known, the cycle traversal still runs in $\mathcal{O}(N)$ time, achieving an overall $\mathcal{O}(N)$ linear time complexity.
+2. **What happens if `nums` contains duplicate values?**
+   - The current `unordered_map<int, int> rank` will overwrite earlier occurrences when identical numbers exist, causing invalid index assignments. By keeping track of each element's unique original index `i` during the sort (e.g., sorting tuples of `(digit_sum, value, original_index)`), duplicates are differentiated by their unique indices, keeping the cycle decomposition mathematically sound.
