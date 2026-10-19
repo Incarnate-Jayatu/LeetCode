@@ -54,79 +54,100 @@
 ## Approach 1: Divide and Conquer with Combinatorics (Pascal's Triangle)
 
 ### Intuition
-To construct an identical Binary Search Tree (BST), the first element in the array must always be chosen as the root. Once the root is fixed, all numbers strictly smaller than the root must reside in the left subtree, and all numbers strictly larger must reside in the right subtree.
+When constructing a Binary Search Tree (BST) from an array, the very first element picked becomes the root. Every subsequent element is partitioned deterministically: values strictly smaller than the root populate the left subtree, and values strictly larger populate the right subtree. 
 
-Think of it like two independent lines of people waiting to merge into a single line behind a VIP (the root). One line consists of people going to the left room, and the other consists of people going to the right room. As long as the people heading to the left room preserve their relative order among themselves, and the people heading to the right room preserve their relative order among themselves, the exact same BST will be formed. 
+Crucially, the relative ordering *within* the left partition determines the shape of the left subtree, and the relative ordering *within* the right partition determines the shape of the right subtree. However, the interleaving between an element destined for the left subtree and an element destined for the right subtree does not affect the tree structure at all—as long as the root is placed first, any element of the left subtree can arrive before or after any element of the right subtree.
 
-Out of the total remaining slots $(|left| + |right|)$, we simply need to choose which $|left|$ slots will be occupied by the elements of the left subtree. The number of ways to interleave these two sequences without changing their internal order is given by the combination formula:
+Think of it like two independent queues of passengers boarding a bus: one queue heading to the left row of seats, the other to the right row. Within each queue, passengers must maintain their order to get their designated seat. But the bus driver doesn't care if a passenger from the left queue boards before or after a passenger from the right queue. The total number of valid boarding sequences is simply the number of ways to interleave the two queues: $\binom{\text{total remaining spots}}{\text{spots for left queue}}$.
 
-$$\binom{|left| + |right|}{|left|} = \binom{m - 1}{|left|}$$
-
-This property holds recursively for every subtree.
+By recursively computing the valid orderings for the left and right subtrees and multiplying them by the combination count $\binom{L + R}{L}$, we obtain the total valid permutations. Finally, we subtract 1 because the original array configuration itself does not count as a "reordering."
 
 ### Algorithm Visualized
 
 ```mermaid
-graph TD
-    A["nums = [3, 4, 5, 1, 2]"] --> B["Root = 3"]
-    B --> C["Left Subtree Elements: [1, 2]"]
-    B --> D["Right Subtree Elements: [4, 5]"]
+flowchart TD
+    Root["Root: nums[0] = 3"] --> Split{"Partition Remaining"}
+    Split --> Left["Left Subtree Array: [1, 2]"]
+    Split --> Right["Right Subtree Array: [4, 5]"]
     
-    C --> E["Ways to interweave: C(4, 2) = 6"]
-    D --> E
+    Left --> RecL["dfs(left) = 1 way"]
+    Right --> RecR["dfs(right) = 1 way"]
     
-    E --> F["Total Configurations = C(4, 2) × ways([1, 2]) × ways([4, 5])"]
-    F --> G["Final Result = Total Configurations - 1 (exclude initial array)"]
+    RecL --> Combine["Interleave Left & Right: C(2 + 2, 2) = 6"]
+    RecR --> Combine
+    
+    Combine --> Total["Total Ways = dfs(left) * dfs(right) * C(4, 2) = 1 * 1 * 6 = 6"]
+    Total --> Sub["Subtract Original Ordering: 6 - 1 = 5"]
 ```
 
 ### Approach
-1. **Precompute Combinations with Pascal's Triangle:**
-   - To compute $\binom{n}{k} \pmod{10^9 + 7}$ efficiently without modular division/inverse, precompute Pascal's triangle up to size $m \times m$, where $m$ is the length of `nums`.
-   - Relation: $\binom{n}{k} = \binom{n-1}{k-1} + \binom{n-1}{k}$.
-
-2. **Recursive Decomposition (`dfs`):**
-   - **Base Case:** If a sequence has $\le 2$ elements, there is only $1$ way to order them (the relative order is uniquely determined). Return $1$.
-   - **Partition:** Designate `nums[0]` as the root. Iterate through `nums[1 \dots m-1]` and distribute elements smaller than `nums[0]` into vector `left`, and larger elements into vector `right`.
-   - **Recurse:** Find the number of valid sequences for both subtrees:
-     $$\text{left\_ways} = \text{dfs}(left)$$
-     $$\text{right\_ways} = \text{dfs}(right)$$
-   - **Combine:** The total ways for the current tree is the number of interleavings multiplied by the independent ways to arrange each subtree:
-     $$\text{ways} = \binom{m - 1}{|left|} \times \text{left\_ways} \times \text{right\_ways} \pmod{10^9 + 7}$$
-
-3. **Subtract the Original Array:**
-   - The problem asks for the number of *reorderings* that produce the same BST. Since the initial arrangement is already one of the valid formations, subtract $1$ from the final answer: `(dfs(nums) - 1 + mod) % mod`.
+1. **Precompute Combinations (Pascal's Triangle):**
+   - The number of ways to interleave two arrays of lengths $L$ and $R$ is $\binom{L + R}{L}$.
+   - Given $N \le 1000$, we precompute binomial coefficients $\binom{n}{k} \pmod{10^9 + 7}$ using Pascal's Identity: $\binom{n}{k} = \binom{n-1}{k-1} + \binom{n-1}{k}$ in $O(N^2)$ time. This avoids modular inverse computations.
+2. **Recursive Partitioning (`dfs`):**
+   - **Base Case:** If an array has fewer than 3 elements ($m < 3$), there is only $1$ way to order them to retain their BST structure (0 elements = 1 way, 1 element = 1 way, 2 elements = root must come first, child second, so only 1 way).
+   - **Partitioning:** Pick `nums[0]` as the root. Iterate through `nums[1 \dots m-1]` and append values less than the root to `leftNodes`, and values greater to `rightNodes`.
+   - **Recursive Step:** Compute `leftWays = dfs(leftNodes)` and `rightWays = dfs(rightNodes)`.
+   - **Combine:** The ways to assemble this subtree is:
+     $$\text{Total} = (\text{leftWays} \times \text{rightWays} \pmod{10^9+7}) \times \binom{m - 1}{|leftNodes|} \pmod{10^9+7}$$
+3. **Subtract Original Array:**
+   - The problem asks for the number of *reorderings* different from the initial array. Thus, the final answer is $(\text{dfs(nums)} - 1) \pmod{10^9 + 7}$.
 
 ### Detailed Code Analysis
 
-- **`table.resize(m + 1);`**: Prepares an $(m + 1) \times (m + 1)$ 2D vector to store combinations dynamically.
-- **Pascal's Triangle Initialization (`table[i][j] = (table[i - 1][j - 1] + table[i - 1][j]) % mod;`)**: Dynamically fills the combinations modulo $10^9 + 7$. This avoids overflow and avoids the $O(\log(\text{mod}))$ cost of modular inverse arithmetic.
-- **`if (m <= 2) return 1;`**: If the array has $0, 1,$ or $2$ elements, the order of insertion to maintain tree structure cannot be altered without changing the root.
-- **Partitioning Loop (`for(int i = 1; i < m; ++i)`)**: 
-  - Iterates through the rest of the array.
-  - If `nums[i] < nums[0]`, it is placed into `left`.
-  - Otherwise, it is placed into `right`.
-  - Relative order among left elements and right elements is strictly preserved.
-- **Modular Multiplication**:
+- **Lines 3–12 (`numOfWays` - Pascal's Triangle Precomputation):**
   ```cpp
-  long long left_ways = dfs(left);
-  long long right_ways = dfs(right);
-  return (((table[m - 1][left.size()] * left_ways) % mod) * right_ways) % mod;
+  int m = nums.size();
+  table.resize(m + 1);
+  for(int i = 0; i < m + 1; ++i) {
+      table[i] = vector<long long>(i + 1, 1);
+      for(int j = 1; j < i; ++j) {
+          table[i][j] = (table[i - 1][j - 1] + table[i - 1][j]) % mod;
+      }
+  }
   ```
-  Applies the product rule modulo $10^9 + 7$ by multiplying interleaving options $\binom{m - 1}{|left|}$ with the recursive subproblem results.
-- **`return (dfs(nums) - 1 + mod) % mod;`**: Subtracts the initial permutation. Adding `mod` before `% mod` prevents negative values if `dfs(nums) == 0` (though `dfs` is $\ge 1$ here, it is defensive programming for modular arithmetic).
+  Initializes a dynamic programming table representing Pascal's triangle up to size $m$. For each row $i$, boundary elements ($\binom{i}{0}$ and $\binom{i}{i}$) are initialized to `1`. Every intermediate cell $j$ is computed as the sum of the two cells directly above it, taken modulo $10^9 + 7$.
+
+- **Line 13 (`return (dfs(nums) - 1) % mod;`):**
+  Calls the recursive function starting with the entire initial array. It subtracts `1` to exclude the initial permutation provided in the input. In C++, if `dfs(nums)` were 0, subtracting 1 could produce a negative result, but since any valid BST permutation array yields $\ge 1$ ways, `dfs(nums) - 1` is guaranteed to be non-negative.
+
+- **Lines 18–22 (`dfs` Base Case):**
+  ```cpp
+  int m = nums.size();
+  if(m < 3) {
+      return 1;
+  }
+  ```
+  If the current subproblem contains 0, 1, or 2 elements, there is only one valid relative ordering that preserves the BST structure.
+
+- **Lines 23–30 (Partitioning Left and Right Elements):**
+  ```cpp
+  vector<int> leftNodes, rightNodes;
+  for(int i = 1; i < m; ++i){
+      if (nums[i] < nums[0]) {
+          leftNodes.push_back(nums[i]);
+      } else {
+          rightNodes.push_back(nums[i]);
+      }
+  }
+  ```
+  The first element `nums[0]` is the local root. By iterating from index `1` to `m - 1`, we preserve the relative arrival order of elements within the left and right subtrees while partitioning them based on BST properties.
+
+- **Lines 31–33 (Recursive Calculation and Interleaving Combination):**
+  ```cpp
+  long long leftWays = dfs(leftNodes) % mod;
+  long long rightWays = dfs(rightNodes) % mod;
+  return (((leftWays * rightWays) % mod) * table[m - 1][leftNodes.size()]) % mod;
+  ```
+  We recursively evaluate `dfs` for both child vectors. The total remaining open slots across both subtrees is $m - 1$. The number of ways to pick indices for the left subtree elements out of the $m - 1$ slots is given by $\binom{m - 1}{|leftNodes|}$, accessible via `table[m - 1][leftNodes.size()]`. All intermediate multiplications use `long long` to prevent 32-bit integer overflow prior to modulo reduction.
 
 ### Code
 
 ```cpp
-#include <vector>
-
-using namespace std;
-
 class Solution {
 public:
     int numOfWays(vector<int>& nums) {
         int m = nums.size();
-        
         // Table of Pascal's triangle
         table.resize(m + 1);
         for(int i = 0; i < m + 1; ++i) {
@@ -135,57 +156,51 @@ public:
                 table[i][j] = (table[i - 1][j - 1] + table[i - 1][j]) % mod;
             }
         }
-        
-        return (dfs(nums) - 1 + mod) % mod;
+        return (dfs(nums) - 1) % mod;
     }
-
 private:
     vector<vector<long long>> table;
     long long mod = 1e9 + 7;
-
-    long long dfs(vector<int> &nums) {
+    long long dfs(vector<int> &nums){
         int m = nums.size();
-        if (m <= 2) return 1;
-
-        vector<int> left;
-        vector<int> right;
-        int root = nums[0];
-
-        for (int i = 1; i < m; ++i) {
-            if (nums[i] < root) {
-                left.push_back(nums[i]);
+        if(m < 3) {
+            return 1;
+        }
+        vector<int> leftNodes, rightNodes;
+        for(int i = 1; i < m; ++i){
+            if (nums[i] < nums[0]) {
+                leftNodes.push_back(nums[i]);
             } else {
-                right.push_back(nums[i]);
+                rightNodes.push_back(nums[i]);
             }
         }
-
-        long long left_ways = dfs(left);
-        long long right_ways = dfs(right);
-
-        // table[total_elements - 1][left_elements]
-        long long ways = (table[m - 1][left.size()] * left_ways) % mod;
-        return (ways * right_ways) % mod;
+        long long leftWays = dfs(leftNodes) % mod;
+        long long rightWays = dfs(rightNodes) % mod;
+        return (((leftWays * rightWays) % mod) * table[m - 1][leftNodes.size()]) % mod;
     }
 };
 ```
 
 ### Complexity
-- **Time Complexity:**
-  - **Pascal's Triangle:** Filling the table takes $\sum_{i=0}^{m} i = O(m^2)$ time.
-  - **DFS Recursion:** At each recursion level, iterating over elements to partition takes $O(k)$ where $k$ is the current array length. In the worst case (a completely skewed tree, like a sorted array), the depth of the recursion tree is $O(m)$, leading to $\sum_{k=1}^{m} k = O(m^2)$ operations. In the best case (a balanced tree), it satisfies $T(m) = 2T(m/2) + O(m) \implies O(m \log m)$.
-  - **Overall Time Complexity:** $O(m^2)$ where $m$ is the number of elements in `nums`.
+
+- **Time Complexity:** 
+  - **Pascal's Triangle Precomputation:** Computing the combination table up to size $N + 1$ takes $O(N^2)$ time.
+  - **DFS Traversal:** At each recursion level, partitioning takes $O(m)$ where $m$ is the length of the current sub-array. In the worst case (a completely skewed tree like a linked list), the recursion depth is $N$, resulting in $\sum_{i=1}^N i = O(N^2)$ work. In the best/average case (a balanced tree), recursion depth is $O(\log N)$, and the work per level is $O(N)$, giving $O(N \log N)$.
+  - **Total Time:** Dominated by $O(N^2)$ due to the Pascal table and worst-case recursion.
 
 - **Space Complexity:**
-  - **Combinations Table:** The Pascal table stores $\frac{m(m + 1)}{2}$ entries, requiring $O(m^2)$ space.
-  - **Recursion Call Stack & Sub-arrays:** The call stack depth is $O(m)$ in the worst case. Across a branch of recursion, dynamically allocating auxiliary vectors `left` and `right` takes $O(m^2)$ cumulative temporary memory.
-  - **Overall Space Complexity:** $O(m^2)$.
+  - **Pascal's Table:** Requires $O(N^2)$ space to store the combinations up to $(N + 1) \times (N + 1)$.
+  - **Recursion Call Stack & Vector Allocations:** At each level of recursion, vectors `leftNodes` and `rightNodes` are allocated. In the worst-case skewed tree, recursion depth is $O(N)$, and the total memory across all active stack frames is $O(N^2)$. In a balanced tree, space across the stack frames is $O(N)$.
+  - **Total Space:** $O(N^2)$ auxiliary space.
 
 ---
 
-## 🕵️‍♂️ Follow-up Questions (Optional)
+## 🕵️‍♂️ Follow-up Questions
 
-1. **How can you reduce the auxiliary space from $O(m^2)$ to $O(m)$?**
-   - Instead of building a 2D Pascal triangle, precompute factorials and inverse factorials up to $m$ using Fermat’s Little Theorem ($a^{p-2} \equiv a^{-1} \pmod p$). This reduces the combination lookup table from an $O(m^2)$ 2D table to two $1$D arrays of size $O(m)$.
+### 1. How can you optimize the space complexity from $O(N^2)$ to $O(N)$?
+Instead of precomputing Pascal's triangle in an $O(N^2)$ 2D matrix, we can precompute factorials and inverse factorials up to $N$ in $O(N)$ time using Fermat's Little Theorem:
+$$\binom{n}{k} = n! \times (k!)^{-1} \times ((n-k)!)^{-1} \pmod{10^9 + 7}$$
+This reduces the combination lookup storage to $O(N)$ for the factorial arrays. Furthermore, instead of creating new sub-vectors at each recursive call, one could pass indices or an auxiliary index mapping array to avoid re-allocating memory, keeping the auxiliary space bounded by $O(N)$.
 
-2. **Can the time complexity be improved if the input tree is skewed?**
-   - The time spent partitioning each subproblem is bounded by the construction of sub-vectors. By indexing or creating an explicit Cartesian Tree / BST first and using tree subtree sizes, combination calculations can be performed in $O(m)$ time after an initial $O(m \log m)$ or $O(m^2)$ tree build.
+### 2. What would happen if duplicate values were allowed in the input array?
+A standard BST handles duplicates by either placing them strictly into the left or right subtree (e.g., $\le$ goes left). However, if identical elements exist, permutations swapping identical elements would produce duplicate sequences unless handled with multinomial coefficients. The problem statement guarantees that `nums` consists of distinct positive integers, avoiding duplicate sequence ambiguity.
