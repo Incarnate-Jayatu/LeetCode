@@ -38,64 +38,161 @@ Therefore, we return false.
 
 # 🛍️ Strictly-Palindromic-Number | Explained
 
-## Approach 1: Mathematical Impossibility Proof (Direct $O(1)$ Return)
+## Approach 1: Base Conversion Simulation with Two-Pointer Palindrome Check
 
 ### Intuition
-Imagine being asked to find a two-letter word where the first letter is always `'A'` and the second letter is always `'B'`, but the word must read the exact same forward and backward. No matter how many letters exist in the alphabet, an `"AB"` word can never be a palindrome because `'A' \neq 'B'`.
+Imagine you are given a secret code number and asked to translate it into several different ancient numbering systems (base $2$ through base $n-2$). For the number to qualify as "strictly palindromic," its translated digit sequence must read identically forwards and backwards in **every single one** of those numbering systems without exception. If even one translation fails the symmetry test, the number is immediately disqualified.
 
-In this problem, a number $n$ is "strictly palindromic" only if it forms a palindrome in **every** base $b$ from $2$ up to $n - 2$. When we inspect the largest required base, $b = n - 2$, any integer $n > 4$ can be expressed algebraically as:
-$$n = 1 \cdot (n - 2)^1 + 2 \cdot (n - 2)^0$$
-
-Because $n > 4$, we have $n - 2 > 2$. Thus, the digits in base $(n - 2)$ are always `[1, 2]`. Written out, this is `"12"`, which is never a palindrome since $1 \neq 2$. For the base case $n = 4$, the only base to check is $b = 4 - 2 = 2$. In base $2$, $4$ is written as `"100"`, which is also not a palindrome. 
-
-Because no integer $n \ge 4$ can satisfy the condition for base $n - 2$, a strictly palindromic number cannot exist within the problem's constraints. Thus, the result is unconditionally `false`.
+This approach directly simulates the problem statement: it iterates through each required base, converts the decimal integer $n$ into a digit string representation in that base, and uses two pointers moving inward from both ends to verify whether that string is a palindrome.
 
 ### Algorithm Visualized
 
 ```mermaid
 flowchart TD
-    A[Input: Integer n >= 4] --> B{Is n = 4?}
-    B -- Yes --> C["Base b = 2: 4 in binary is '100'"]
-    C --> F[Not a Palindrome]
-    B -- No --> D["Evaluate Base b = n - 2"]
-    D --> E["Representation: n = 1*(n-2) + 2 -> '12'"]
-    E --> F
-    F --> G[Condition fails for base n - 2]
-    G --> H[Return false]
+    Start([Start: isStrictlyPalindromic with integer n]) --> InitLoop[Set base = 2]
+    InitLoop --> CheckBase{base <= n - 2?}
+    
+    CheckBase -- Yes --> Convert[convertToBase: repeatedly extract n % base]
+    Convert --> ReverseStr[Reverse result to get correct MSB-to-LSB order]
+    ReverseStr --> CheckPal[palindrome: compare characters with l and h pointers]
+    
+    CheckPal --> IsPal{Is it a Palindrome?}
+    IsPal -- No --> ReturnFalse([Return false])
+    IsPal -- Yes --> IncBase[base = base + 1]
+    IncBase --> CheckBase
+    
+    CheckBase -- No --> ReturnTrue([Return true])
 ```
 
+---
+
 ### Approach
-1. **Analyze Constraints:** The problem specifies $4 \le n \le 10^5$.
-2. **Evaluate the Boundary Base $(n - 2)$:**
-   - For $n = 4$, the range of bases is $[2, 4 - 2] = [2, 2]$. In base $2$, $4_{10} = 100_2$, which is not palindromic.
-   - For any $n > 4$, the range includes base $b = n - 2$. In base $n - 2$, $n$ will always produce the representation `"12"`.
-3. **Deduce Universal Invalidation:** Because the problem demands that the number must be palindromic in *all* bases in range $[2, n - 2]$, finding even a single base where it fails invalidates the condition.
-4. **Return Early:** Since base $n - 2$ always fails for every $n \ge 4$, return `false` unconditionally.
+1. **Iterate Through Bases:** Loop variable `base` from $2$ up to $n - 2$ inclusive.
+2. **Base Conversion (`convertToBase`):**
+   - Repeatedly compute the remainder `rem = n % base` to obtain the least significant digit.
+   - Look up the character representation using an index table.
+   - Divide `n` by `base` until `n` reaches $0$.
+   - Reverse the accumulated digit string so that digits read from the most significant bit (MSB) to the least significant bit (LSB).
+3. **Palindrome Verification (`palindrome`):**
+   - Initialize two pointers: `l` at index `0` and `h` at the last character index (`s.length() - 1`).
+   - Move inward, comparing characters `s[l]` and `s[h]`.
+   - If a mismatch occurs at any position, terminate immediately and return `false`.
+4. **Final Conclusion:**
+   - If all bases from $2$ to $n - 2$ yield valid palindromes, return `true`.
+
+---
 
 ### Detailed Code Analysis
 
+#### 1. Base Conversion Routine
 ```cpp
-1class Solution {
-2public:
-3    bool isStrictlyPalindromic(int n) {
-4        return false;
-5    }
-6};
+string convertToBase(int n, int base) {
+    string s = "0123456789";
+    string result = "";
+    while (n > 0) {
+        int rem = n % base;
+        result += s[rem];
+        n /= base;
+    }
+    reverse(result.begin(), result.end());
+    return result;
+}
+```
+- **Lookup Table (`s`):** Maps integer remainders $0$ through $9$ to their respective ASCII characters.
+- **Extraction Loop (`while (n > 0)`):** `n % base` isolates the current lowest-order digit in base `base`. Appending it to `result` builds the string from least significant digit to most significant digit.
+- **Integer Reduction (`n /= base`):** Shifts the number down by one place-value in the target base.
+- **Reversal (`reverse(...)`):** Since digits were appended backwards (LSB first), reversing restores the correct positional notation (MSB first).
+
+#### 2. Palindromic String Validation
+```cpp
+bool palindrome(string s) {
+    int l = 0;
+    int h = s.length() - 1;
+    while (l <= h) {
+        if (s[l] != s[h]) {
+            return false;
+        }
+        l++;
+        h--;
+    }
+    return true;
+}
+```
+- **Two Pointers (`l` and `h`):** `l` starts at the leftmost character; `h` starts at the rightmost character.
+- **Symmetry Check (`s[l] != s[h]`):** Compares corresponding characters from outer boundaries moving inward. If any pair differs, the string is not symmetric, returning `false` early.
+- **Pointer Step (`l++`, `h--`):** Moves the boundary inward until both pointers cross at the center.
+
+#### 3. Orchestration
+```cpp
+bool isStrictlyPalindromic(int n) {
+    for (int base = 2; base <= n - 2; base++) {
+        string result = convertToBase(n, base);
+        if (!palindrome(result)) return false;
+    }
+    return true;
+}
+```
+- **Range (`2` to `n - 2`):** Tests every base specified by the problem definition.
+- **Short-circuit Evaluation:** As soon as `!palindrome(result)` evaluates to `true`, the function halts and returns `false`, avoiding unnecessary conversions for subsequent bases.
+
+---
+
+### Code
+
+```cpp
+class Solution {
+public:
+    string convertToBase(int n, int base) {
+        string s = "0123456789";
+        string result = "";
+        while (n > 0) {
+            int rem = n % base;
+            result += s[rem];
+            n /= base;
+        }
+        reverse(result.begin(), result.end());
+        return result;
+    }
+
+    bool palindrome(string s) {
+        int l = 0;
+        int h = s.length() - 1;
+        while (l <= h) {
+            if (s[l] != s[h]) {
+                return false;
+            }
+            l++;
+            h--;
+        }
+        return true;
+    } 
+
+    bool isStrictlyPalindromic(int n) {
+        for (int base = 2; base <= n - 2; base++) {
+            string result = convertToBase(n, base);
+            if (!palindrome(result)) return false;
+        }
+        return true;
+    }
+};
 ```
 
-- **Line 3 (`bool isStrictlyPalindromic(int n)`):** Accepts the target integer $n$. By constraints, $n \ge 4$.
-- **Line 4 (`return false;`):** Directly returns boolean `false`. Since mathematical analysis guarantees that for all valid inputs $n \ge 4$, the base $b = n - 2$ yields a non-palindromic sequence (`"100"` for $n = 4$, `"12"` for $n > 4$), no runtime computation, looping, or base conversion is necessary.
+---
 
 ### Complexity
-- **Time:** $O(1)$. The function performs an instantaneous return without executing any loops, allocations, or arithmetic operations.
-- **Space:** $O(1)$. No auxiliary memory, strings, or stacks are allocated.
+
+- **Time Complexity:** 
+  - In the theoretical worst case where every base check passes, the loop runs $n - 3$ times. In each iteration, converting $n$ to base $b$ takes $O(\log_b n)$ steps, and checking the palindrome takes $O(\log_b n)$ steps. Summed over all bases $b \in [2, n-2]$, the upper bound is $O(n \log n)$.
+  - In practice, base $2$ fails immediately for almost all $n$ (or base $n-2$ fails), making actual runtime $O(\log_2 n)$ before early termination.
+- **Space Complexity:** 
+  - $O(\log_2 n)$ auxiliary space to allocate and store the string `result` representing $n$ in base $b$ (the longest string occurs when $base = 2$, having length $\lfloor \log_2 n \rfloor + 1$).
 
 ---
 
 ## 🕵️‍♂️ Follow-up Questions (Optional)
 
-1. **What if the upper bound for bases was restricted to $\sqrt{n}$ instead of $n - 2$?**
-   - If the upper bound were smaller (e.g., $2 \le b \le \sqrt{n}$), the `"12"` proof at $b = n - 2$ would no longer apply. We would need to implement an active simulation that converts $n$ into each base $b \in [2, \lfloor\sqrt{n}\rfloor]$ using standard modulo division ($n \pmod b$) and check each sequence with a two-pointer palindrome check in $O(\sqrt{n} \log n)$ time.
+1. **Can any integer $n \ge 4$ ever be strictly palindromic?**
+   - **Answer:** No. For any integer $n \ge 4$, consider the base $b = n - 2$. In base $n - 2$, $n = 1 \cdot (n - 2) + 2$. Therefore, the representation of $n$ in base $n - 2$ is always `"12"`. Since `"12"` is never a palindrome, the condition is guaranteed to fail for every $n \ge 4$. Hence, the optimal theoretical solution is simply `return false;` in $O(1)$ time and $O(1)$ space.
 
-2. **How does standard base conversion work if we actually had to check palindromes programmatically?**
-   - Repeatedly extract the least significant digit using `n % b` and divide `n /= b` until `n == 0`. Store the digits in a dynamic array/vector, then use two pointers (`left = 0`, `right = size - 1`) moving inward to verify `digits[left] == digits[right]`.
+2. **Why does the conversion logic use `s[rem]` with string `"0123456789"` when bases can exceed $10$?**
+   - **Answer:** If $n > 11$, base $b$ can be greater than $10$, which means `rem` can reach values $\ge 10$. Accessing `s[rem]` would result in out-of-bounds undefined behavior. However, because the check fails at smaller bases (such as base $2$) long before reaching bases $\ge 10$, this out-of-bounds access is practically never triggered during execution.
