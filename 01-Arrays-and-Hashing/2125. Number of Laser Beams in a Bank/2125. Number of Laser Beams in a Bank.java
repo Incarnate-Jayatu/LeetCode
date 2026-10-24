@@ -1,21 +1,21 @@
-1class Solution{
-2    public int numberOfBeams(String[] bank){
-3        int row = bank.length;
-4        int ans = 0;
-5        ArrayList<Integer> deviceCount = new ArrayList<>();
-6        for (int i = 0; i < row; i++){
-7            String curr = bank[i];
-8            int count = 0;
-9            for (int j = 0; j < curr.length(); j++){
-10                if (curr.charAt(j) == '1'){
-11                    count++;
-12                }
-13            }
-14            if(count > 0) deviceCount.add(count);
-15        }
-16        for(int i = 0; i < deviceCount.size() - 1; i++){
-17            ans += deviceCount.get(i) * deviceCount.get(i + 1);
-18        }
-19        return ans;
-20    }
-21}
+class Solution {
+public:
+    int numberOfBeams(vector<string>& bank) {
+        int prev = 0, ans = 0;
+        
+        for (string s : bank) {
+            int count = 0;
+            for (char c : s) {
+                if (c == '1') {
+                    count++;
+                }
+            }
+            if (count != 0) {
+                ans += (prev * count);
+                prev = count;
+            }
+        }
+        
+        return ans;
+    }
+};
