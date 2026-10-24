@@ -53,133 +53,147 @@ This is because the 2<sup>nd</sup> row contains security devices, which breaks t
 
 # 🛍️ Number-of-Laser-Beams-in-a-Bank | Explained
 
-## Approach 1: Intermediate Device Count Filtering (Two-Pass with List)
+## Approach 1: Single Pass with State Tracking (Consecutive Non-Empty Row Multiplication)
 
 ### Intuition
-Think of the bank as a multi-story building where each floor either has security guards (`1`) or is completely empty (`0`). Lasers can only pass between floors if there are no intermediate floors containing security guards to intercept them. This means completely empty floors are essentially transparent—they do not block lasers and they do not generate lasers. 
+Think of each floor in the bank as a stage in a multi-story atrium. Security cameras are positioned on certain floors, and every camera on an active floor must project a beam to every camera on the *next available floor* that actually has cameras. Floors without any cameras are completely transparent—the laser beams simply bypass them.
 
-Therefore, any empty floor can be entirely disregarded. If Floor A has $X$ guards and the very next non-empty floor, Floor B, has $Y$ guards, every single guard on Floor A connects to every single guard on Floor B. By the fundamental counting principle, the total number of beams formed between these two floors is simply $X \times Y$. By first filtering out all the empty floors into a list, the problem reduces to multiplying adjacent elements in that list and summing the results.
+Because every camera on floor $A$ connects to every camera on the subsequent active floor $B$, the total number of beams between those two floors follows the fundamental counting principle: if floor $A$ has $m$ cameras and floor $B$ has $n$ cameras, there are $m \times n$ beams connecting them. We do not need to compare all pairs of rows or store historical data; we only need to remember the number of devices on the *immediately preceding active row*.
 
 ### Algorithm Visualized
 
 ```mermaid
 flowchart TD
-    A["Input: bank = ['011001', '000000', '010100', '001000']"] --> B["Iterate Rows & Count '1's"]
-    B --> C["Row 0: count = 3 (>0) -> Keep"]
-    B --> D["Row 1: count = 0 (==0) -> Discard"]
-    B --> E["Row 2: count = 2 (>0) -> Keep"]
-    B --> F["Row 3: count = 1 (>0) -> Keep"]
+    Start([Start Loop over Bank Rows]) --> ReadRow[Read Next Row]
+    ReadRow --> CountOnes["Count '1's in Row (count)"]
+    CountOnes --> IsZero{count > 0?}
     
-    C --> G["deviceCount = [3, 2, 1]"]
-    D -.->|Filtered out| G
-    E --> G
-    F --> G
+    IsZero -- No --> HasNext{More Rows?}
+    IsZero -- Yes --> CalcBeams["ans += (prev * count)"]
+    CalcBeams --> UpdatePrev["prev = count"]
+    UpdatePrev --> HasNext
     
-    G --> H["Pairwise Multiplication:"]
-    H --> I["(3 * 2) = 6"]
-    H --> J["(2 * 1) = 2"]
-    
-    I --> K["Total Sum: 6 + 2 = 8"]
-    J --> K
+    HasNext -- Yes --> ReadRow
+    HasNext -- No --> ReturnAns([Return ans])
 ```
 
 ### Approach
-1. **Count Security Devices per Row**:
-   - Traverse the `bank` array row by row.
-   - For each row, count the occurrences of the character `'1'`.
-2. **Filter Out Empty Rows**:
-   - If a row contains at least one device (`count > 0`), store that count in an auxiliary list (`deviceCount`).
-   - If a row has zero devices (`count == 0`), simply ignore it, as it neither initiates nor terminates laser beams.
-3. **Calculate Total Beams**:
-   - Iterate through the `deviceCount` list up to the second-to-last element (`size - 1`).
-   - Multiply the count of devices in the current row (`deviceCount.get(i)`) by the count in the subsequent valid row (`deviceCount.get(i + 1)`).
-   - Accumulate these products into `ans`.
-4. **Return Result**:
-   - Return the total accumulated beam count.
+1. **Initialize Accumulators:**
+   - Maintain `ans` to store the total beam count.
+   - Maintain `prev` to track the number of devices found in the most recent row that contained at least one device. Initialize `prev = 0` so that the very first populated row does not erroneously generate beams with a non-existent previous row.
+
+2. **Iterate Row by Row:**
+   - For every binary string in the bank, count how many security devices (`'1'`) are present.
+   - If the current row contains zero devices (`count == 0`), simply skip it. It cannot emit or receive laser beams, nor does it block beams passing between rows above and below it.
+
+3. **Compute and Advance:**
+   - If the current row has devices (`count > 0`):
+     - Calculate the beams formed between the last active row and this row: `prev * count`.
+     - Add this value to `ans`.
+     - Update `prev` to `count`, making this row the new reference point for any subsequent active rows.
+
+4. **Termination:**
+   - Return `ans` after all rows are processed.
 
 ### Detailed Code Analysis
 
-```java
-int row = bank.length;
-int ans = 0;
-ArrayList<Integer> deviceCount = new ArrayList<>();
-```
-- `row`: Stores the total number of rows (floors) in the bank.
-- `ans`: The running accumulator for the total number of laser beams.
-- `deviceCount`: An `ArrayList<Integer>` used as an intermediate buffer to record the number of devices on non-empty rows in their original sequential order.
-
-```java
-for (int i = 0; i < row; i++){
-    String curr = bank[i];
-    int count = 0;
-    for (int j = 0; j < curr.length(); j++){
-        if (curr.charAt(j) == '1'){
-            count++;
-        }
-    }
-    if(count > 0) deviceCount.add(count);
-}
-```
-- **Outer Loop (`i`)**: Iterates through each binary string representing a row in the bank.
-- **Inner Loop (`j`)**: Scans through each character of the string `curr`. When a `'1'` is encountered, `count` is incremented.
-- **Conditional Addition (`if(count > 0)`)**: Only rows containing at least one laser device are pushed to `deviceCount`. This step strips out inactive rows that would otherwise interrupt direct laser transmission logic.
-
-```java
-for(int i = 0; i < deviceCount.size() - 1; i++){
-    ans += deviceCount.get(i) * deviceCount.get(i + 1);
-}
-return ans;
-```
-- **Adjacent Product Loop**: Loops from index `0` to `deviceCount.size() - 2`. 
-- `deviceCount.get(i) * deviceCount.get(i + 1)`: Multiplies every device on the current active row by every device on the next active row, representing all possible unique connecting beams.
-- Returns `ans`. If there are fewer than 2 active rows, `deviceCount.size() - 1` evaluates to $\le 0$, the loop is skipped, and the initial value `0` is correctly returned.
-
-### Code
-```java
+```cpp
 class Solution {
-    public int numberOfBeams(String[] bank) {
-        int row = bank.length;
-        int ans = 0;
-        ArrayList<Integer> deviceCount = new ArrayList<>();
-        for (int i = 0; i < row; i++) {
-            String curr = bank[i];
+public:
+    int numberOfBeams(vector<string>& bank) {
+        // 'prev' stores the device count of the previous non-empty row.
+        // 'ans' accumulates the total laser beams formed across all pairs.
+        int prev = 0, ans = 0;
+        
+        // Iterate through each row in the bank grid.
+        // Note: 'string s' makes a copy of each string per iteration.
+        for (string s : bank) {
             int count = 0;
-            for (int j = 0; j < curr.length(); j++) {
-                if (curr.charAt(j) == '1') {
+            
+            // Count security devices ('1') in the current row.
+            for (char c : s) {
+                if (c == '1') {
                     count++;
                 }
             }
-            if (count > 0) deviceCount.add(count);
+            
+            // A row only participates in beam creation if it has at least one device.
+            if (count != 0) {
+                // Number of beams between previous active row and current row
+                ans += (prev * count);
+                
+                // Shift the window: the current row becomes the 'prev' for future rows.
+                prev = count;
+            }
         }
-        for (int i = 0; i < deviceCount.size() - 1; i++) {
-            ans += deviceCount.get(i) * deviceCount.get(i + 1);
-        }
+        
         return ans;
     }
-}
+};
+```
+
+- **Lines 4:** `int prev = 0, ans = 0;` initializes the laser beam accumulator and previous device counter. Starting `prev = 0` ensures that the first active row contributes `0 * count = 0` beams, properly handling the boundary condition without special casing.
+- **Line 6:** `for (string s : bank)` iterates over the vector of row strings.
+- **Lines 7–12:** `int count = 0; for (char c : s) { if (c == '1') count++; }` scans the current row character-by-character to tally the active devices.
+- **Lines 13–16:** `if (count != 0)` filters out rows with zero devices. If devices are present:
+  - `ans += (prev * count);` executes the Cartesian product between devices on the current and previous active rows.
+  - `prev = count;` updates the state so subsequent rows connect to this row.
+- **Line 19:** `return ans;` returns the accumulated sum after inspecting all floors.
+
+### Code
+```cpp
+class Solution {
+public:
+    int numberOfBeams(vector<string>& bank) {
+        int prev = 0, ans = 0;
+        
+        for (string s : bank) {
+            int count = 0;
+            for (char c : s) {
+                if (c == '1') {
+                    count++;
+                }
+            }
+            if (count != 0) {
+                ans += (prev * count);
+                prev = count;
+            }
+        }
+        
+        return ans;
+    }
+};
 ```
 
 ### Complexity
 - **Time Complexity:** $\mathcal{O}(M \times N)$
-  - Let $M$ be the number of rows (`bank.length`) and $N$ be the length of each string (`bank[0].length()`).
-  - Scanning every character in the grid takes $\mathcal{O}(M \times N)$ time.
-  - The second loop iterates through `deviceCount`, which has a maximum size of $M$. Iterating and multiplying takes $\mathcal{O}(M)$ time.
-  - Total Time: $\mathcal{O}(M \times N) + \mathcal{O}(M) = \mathcal{O}(M \times N)$.
-- **Space Complexity:** $\mathcal{O}(M)$
-  - In the worst case (every row contains at least one `'1'`), `deviceCount` stores an entry for every row, requiring $\mathcal{O}(M)$ extra auxiliary space.
+  Where $M$ is the number of rows in `bank` (`bank.size()`) and $N$ is the length of each string (`bank[0].size()`). Every character in the grid is visited exactly once during the inner character-counting loop.
+- **Space Complexity:** $\mathcal{O}(1)$ auxiliary space (ignoring string copy).
+  The algorithm only tracks scalar variables (`prev`, `ans`, `count`). 
+  *Note:* Because the loop uses `for (string s : bank)` instead of `for (const string& s : bank)`, each row string is copied, which uses $\mathcal{O}(N)$ dynamic allocation per iteration. Using a `const` reference reduces auxiliary space strictly to $\mathcal{O}(1)$.
 
 ---
 
 ## 🕵️‍♂️ Follow-up Questions
 
-### 1. Can we optimize the space complexity to $\mathcal{O}(1)$?
-**Answer:** Yes. Notice that to calculate the beams formed with the current row, you only need the device count of the **immediately preceding non-empty row**. 
-Instead of storing all row counts in an `ArrayList`, maintain a single variable `prevCount = 0`. As you scan row by row:
-1. Count devices in the current row (`currCount`).
-2. If `currCount > 0`:
-   - Add `prevCount * currCount` to `ans`.
-   - Update `prevCount = currCount`.
-This reduces extra auxiliary space from $\mathcal{O}(M)$ to $\mathcal{O}(1)$ while maintaining single-pass processing.
+### 1. How would you optimize this implementation for modern C++ standards and cache efficiency?
+Instead of manually looping through characters with an unnecessary string copy, use `const string&` and standard algorithms like `std::count`:
+```cpp
+for (const string& s : bank) {
+    int count = std::count(s.begin(), s.end(), '1');
+    if (count > 0) {
+        ans += prev * count;
+        prev = count;
+    }
+}
+```
+`std::count` is often vectorized (SIMD) by optimizing compilers, significantly speeding up execution on large string lengths.
 
-### 2. Can integer overflow occur if the constraints are large?
-**Answer:** In LeetCode's constraints ($M, N \le 500$), the maximum devices per row is $500$, and the maximum beams between two rows is $500 \times 500 = 250,000$. Over 500 rows, the maximum total beams would be roughly $500 \times 250,000 \approx 1.25 \times 10^8$, which fits safely inside a standard signed 32-bit integer (max $\approx 2.14 \times 10^9$). However, if $M, N \ge 10^5$, `ans` would need to be a 64-bit integer (`long` in Java) to prevent integer overflow.
+### 2. Can integer overflow occur in `ans += (prev * count)`?
+Given the problem constraints on LeetCode ($M, N \le 500$):
+- Maximum devices per row: $500$
+- Maximum beams between two adjacent rows: $500 \times 500 = 250,000$
+- Maximum total rows: $500$
+- Maximum total beams: $\approx 250 \times 250,000 \approx 6.25 \times 10^7$
+
+Because $6.25 \times 10^7$ is well within the 32-bit signed integer limit ($2^{31} - 1 \approx 2.14 \times 10^9$), standard 32-bit `int` will not overflow. However, if $M, N \ge 10^5$, `ans` would need to be upgraded to `long long`.
